@@ -35,9 +35,9 @@ with open('./config/tcp_config.yml') as f:
 top_path_vae_tcp = dic_path['rootPath_VAE_TCP']
 if not top_path_vae_tcp in sys.path:
     sys.path.append(top_path_vae_tcp)
-from tcp_tools.basic_tools import info_show
-from tcp_tools.vae_manager import VAEManager
-from tools.dataset_tcp import NormalizeManager
+from tools.basic_tools import info_show
+from models.svae.svae_model import SoftIntroVAE as VAEManager
+# from tools.dataset_tcp import NormalizeManager
 # from pythae_ex.models import AutoModel_Ex
 
 PATH_VAE_MODEL = os.environ.get('PATH_VAE_MODEL', None)
@@ -102,8 +102,14 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         
         # <====================================================================
         if PATH_VAE_MODEL is not None:
-            self.vae_manager = VAEManager(PATH_VAE_MODEL)
-            self.norm_manager = NormalizeManager()
+            self.device = torch.device('cuda:0')
+            self.vae_manager = VAEManager(cdim=3, zdim=1024, 
+                                          channels=(64, 128, 256, 512, 512, 512), 
+                                          image_size=(256,900))
+            self.vae_manager.to(self.device)
+            weights = torch.load(PATH_VAE_MODEL, map_location=self.device)
+            self.vae_manager.load_state_dict(weights['model'], strict=False)
+            # self.norm_manager = NormalizeManager()
         # ====================================================================>
 
     def _init(self):
@@ -191,7 +197,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         result['target_point'] = tuple(local_command_point)
         
         # <=========================
-        # info_show(rgb, 'rgb', False) # (256, 900, 3)
+        # info_show(rgb, 'rgb', False) # (256, 900, 3) [0~255]
         # info_show(bev, 'bev', False) # (512, 512, 3)
         # info_show(gps, 'gps') # (2,)
         info_show(speed, 'speed') # numpy.float64
@@ -199,7 +205,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         info_show(pos, 'pos') # (2,)
         info_show(next_cmd, 'next_cmd') # RoadOption
         info_show(result['target_point'], 'target_point') # tuple len=2
-        # info_show(input_data['rgb'][1], 'input_data', False) # (256, 900, 4)
+        # info_show(input_data['rgb'][1], 'input_data', True) # (256, 900, 4) [0~255]
         # =========================>
 
         return result
@@ -318,15 +324,18 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         torch.cuda.empty_cache()
     
     def __2nd_process(self, tick_data):
-        # normalize (0, 255) to (-2.x, 2.x)
-        rgb = self._im_transform(tick_data['rgb']).unsqueeze(0).to('cuda', dtype=torch.float32)
+        rgb = torch.tensor(tick_data['rgb']).to(self.device, dtype=torch.float32).permute(2, 0, 1)
+        
+        rgb = (rgb.unsqueeze(0) / 255)*2 - 1
         # info_show(rgb, '2nd_rgb')
-        rgb_dic = {'data':rgb}
-        rgb_recon = self.vae_manager.forward(rgb_dic)['recon_x']
-        # denormalize (-1, 1) to (0, 255)
-        rgb_recon = self.norm_manager.denorm(rgb_recon)*255
+        rgb_recon = self.vae_manager.forward(rgb, deterministic=True)[-1]
+        # info_show(rgb_recon, '2nd_rgb_recon')
+        # rgb_recon = torch.sigmoid(rgb_recon)
+        rgb_recon = torch.round((rgb_recon+1)/2 * 255)
+        
         rgb_recon = rgb_recon.squeeze(0)
         rgb_recon = rgb_recon.permute(1, 2, 0)
+        
         # Here should convert the tensor to np.uint8. Reason is unkown at this point.
         rgb_recon = np.array(rgb_recon.cpu().detach(), dtype = np.uint8)
         # info_show(rgb_recon, '2nd_rgb_recon')
