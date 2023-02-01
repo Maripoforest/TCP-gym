@@ -37,12 +37,13 @@ if not top_path_vae_tcp in sys.path:
     sys.path.append(top_path_vae_tcp)
 from tools.basic_tools import info_show
 from models.svae.svae_model import SoftIntroVAE as VAEManager
-# from tools.dataset_tcp import NormalizeManager
+from tools.dataset_tcp import NormalizeManager
 # from pythae_ex.models import AutoModel_Ex
 
 PATH_VAE_MODEL = os.environ.get('PATH_VAE_MODEL', None)
-
 SAVE_PATH = os.environ.get('SAVE_PATH', None)
+TCP_PERCEPTION = os.environ.get('TCP_PERCEPTION', None)
+TCP_MEASUREMENT = os.environ.get('TCP_MEASUREMENT', None)
 
 
 def get_entry_point():
@@ -103,13 +104,27 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         # <====================================================================
         if PATH_VAE_MODEL is not None:
             self.device = torch.device('cuda:0')
-            self.vae_manager = VAEManager(cdim=3, zdim=1024, 
-                                          channels=(64, 128, 256, 512, 512, 512), 
-                                          image_size=(256,900))
+            if TCP_PERCEPTION == 'True' and TCP_MEASUREMENT != 'True':
+                self.vae_manager = VAEManager(cdim=3, zdim=1024, 
+                                              channels=(64, 128, 256, 512, 512, 512), 
+                                              image_size=(256,900), conditional=True, 
+                                              cond_dim=1000)
+            elif TCP_PERCEPTION == 'True' and TCP_MEASUREMENT == 'True':
+                self.vae_manager = VAEManager(cdim=3, zdim=1024, 
+                                              channels=(64, 128, 256, 512, 512, 512), 
+                                              image_size=(256,900), conditional=True, 
+                                              cond_dim=1128)
+            else:
+                print(TCP_PERCEPTION, TCP_MEASUREMENT)
+                self.vae_manager = VAEManager(cdim=3, zdim=1024, 
+                                              channels=(64, 128, 256, 512, 512, 512), 
+                                              image_size=(256,900))
+                
             self.vae_manager.to(self.device)
             weights = torch.load(PATH_VAE_MODEL, map_location=self.device)
             self.vae_manager.load_state_dict(weights['model'], strict=False)
-            # self.norm_manager = NormalizeManager()
+            self.vae_manager.eval()
+            self.norm_manager = NormalizeManager()
         # ====================================================================>
 
     def _init(self):
@@ -214,10 +229,7 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         if not self.initialized:
             self._init()
         tick_data = self.tick(input_data)
-        # <=========================
-        if PATH_VAE_MODEL is not None:
-            tick_data = self.__2nd_process(tick_data)
-        # =========================>
+        
         if self.step < self.config.seq_len:
             rgb = self._im_transform(tick_data['rgb']).unsqueeze(0)
 
@@ -248,7 +260,10 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         target_point = torch.stack(tick_data['target_point'], dim=1).to('cuda', dtype=torch.float32)
         state = torch.cat([speed, target_point, cmd_one_hot], 1)
         
-        # info_show(rgb, 'rgb')
+        # <=========================
+        if PATH_VAE_MODEL is not None:
+            rgb, tick_data = self.__2nd_process(tick_data, state, rgb)
+        # =========================>
         pred= self.net(rgb, state, target_point)
 
         steer_ctrl, throttle_ctrl, brake_ctrl, metadata = self.net.process_action(pred, tick_data['next_command'], gt_velocity, target_point)
@@ -323,41 +338,28 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
             del self.vae_manager
         torch.cuda.empty_cache()
     
-    def __2nd_process(self, tick_data):
+    def __2nd_process(self, tick_data, state, rgb_tcp):
+        if TCP_PERCEPTION == 'True' and TCP_MEASUREMENT == 'True':
+            feature_emb, _ = self.net.perception(rgb_tcp)
+            measurement_feature = self.net.measurements(state)
+            o_cond = torch.cat([feature_emb, measurement_feature], 1)
+        elif TCP_PERCEPTION == 'True' and TCP_MEASUREMENT != 'True':
+            feature_emb, _ = self.net.perception(rgb_tcp)
+            o_cond = feature_emb
+        else:
+            o_cond = None
+            
+        # Change the channel from H*W*C to C*H*W
         rgb = torch.tensor(tick_data['rgb']).to(self.device, dtype=torch.float32).permute(2, 0, 1)
-        
-        rgb = (rgb.unsqueeze(0) / 255)*2 - 1
+        # Change range to [0, 1]
+        rgb = rgb.unsqueeze(0) / 255
+        rgb = self.norm_manager.norm(rgb)
         # info_show(rgb, '2nd_rgb')
-        rgb_recon = self.vae_manager.forward(rgb, deterministic=True)[-1]
+        rgb_recon = self.vae_manager.forward(rgb, o_cond, deterministic=True)[-1]
+        # For saving
+        tick_data['rgb'] = self.norm_manager.image_2_rawImage(rgb_recon)
         # info_show(rgb_recon, '2nd_rgb_recon')
-        # rgb_recon = torch.sigmoid(rgb_recon)
-        rgb_recon = torch.round((rgb_recon+1)/2 * 255)
+        rgb_recon = self.norm_manager.realBatch_2_tcpBatch(rgb_recon)
         
-        rgb_recon = rgb_recon.squeeze(0)
-        rgb_recon = rgb_recon.permute(1, 2, 0)
-        
-        # Here should convert the tensor to np.uint8. Reason is unkown at this point.
-        rgb_recon = np.array(rgb_recon.cpu().detach(), dtype = np.uint8)
-        # info_show(rgb_recon, '2nd_rgb_recon')
-        tick_data['rgb'] = rgb_recon
-        return tick_data
+        return rgb_recon, tick_data
     
-    '''# Old version
-    def __2nd_process(self, tick_data):
-        rgb = tick_data['rgb']
-        # normalize (0, 255) to (-1, 1)
-        rgb = rgb/127.5 - 1
-        rgb = torch.Tensor(rgb).unsqueeze(0).to('cuda')
-        rgb = rgb.permute(0, 3, 1, 2)
-        rgb_dic = {'data':rgb}
-        rgb = self.vae_manager.forward(rgb_dic)['recon_x']
-        # denormalize (-1, 1) to (0, 255)
-        rgb = rgb.squeeze(0)
-        rgb = rgb.permute(1, 2, 0)
-        rgb = (rgb+1)*127.5
-        # Here should convert the tensor to np.uint8. Reason is unkown at this point.
-        rgb = np.array(rgb.cpu().detach(), dtype = np.uint8)
-        # info_show(rgb, '2nd_rgb')
-        tick_data['rgb'] = rgb
-        return tick_data
-    '''

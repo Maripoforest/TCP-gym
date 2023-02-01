@@ -3,10 +3,10 @@
         "global_record": {
             "index": -1,
             "infractions": {
-                "collisions_layout": 0.04189212356537429,
+                "collisions_layout": 0.12157386853567963,
                 "collisions_pedestrian": 0.0,
-                "collisions_vehicle": 0.08378424713074858,
-                "outside_route_lanes": 0.04189212356537429,
+                "collisions_vehicle": 0.36472160560703887,
+                "outside_route_lanes": 0.12157386853567963,
                 "red_light": 0.0,
                 "route_dev": 0.0,
                 "route_timeout": 0.0,
@@ -24,9 +24,9 @@
             },
             "route_id": -1,
             "scores": {
-                "score_composed": 5.2453117759711985,
-                "score_penalty": 0.2136952101689435,
-                "score_route": 24.545762030998972
+                "score_composed": 0.8608835872615954,
+                "score_penalty": 0.10178312229053905,
+                "score_route": 8.458019049604419
             },
             "status": "Failed"
         },
@@ -39,15 +39,16 @@
                 "index": 0,
                 "infractions": {
                     "collisions_layout": [
-                        "Agent collided against object with type=static.fence and id=0 at (x=178.781, y=111.282, z=0.305)"
+                        "Agent collided against object with type=static.prop.vendingmachine and id=208 at (x=16.013, y=112.571, z=0.358)"
                     ],
                     "collisions_pedestrian": [],
                     "collisions_vehicle": [
-                        "Agent collided against object with type=vehicle.carlamotors.carlacola and id=278 at (x=-3.462, y=177.541, z=0.253)",
-                        "Agent collided against object with type=vehicle.carlamotors.carlacola and id=278 at (x=-3.399, y=157.214, z=0.253)"
+                        "Agent collided against object with type=vehicle.carlamotors.carlacola and id=278 at (x=-3.442, y=177.559, z=0.253)",
+                        "Agent collided against object with type=vehicle.carlamotors.carlacola and id=278 at (x=-3.318, y=157.212, z=0.253)",
+                        "Agent collided against object with type=vehicle.carlamotors.carlacola and id=278 at (x=-3.234, y=132.617, z=0.253)"
                     ],
                     "outside_route_lanes": [
-                        "Agent went outside its route lanes for about 21.579 meters (8.68% of the completed route)"
+                        "Agent went outside its route lanes for about 23.566 meters (27.5% of the completed route)"
                     ],
                     "red_light": [],
                     "route_dev": [],
@@ -56,16 +57,16 @@
                     "vehicle_blocked": []
                 },
                 "meta": {
-                    "duration_game": 57.050000850111246,
-                    "duration_system": 86.57997441291809,
+                    "duration_game": 23.800000354647636,
+                    "duration_system": 37.24173092842102,
                     "route_length": 972.5033469980193,
-                    "total_steps": 1140
+                    "total_steps": 475
                 },
                 "route_id": "RouteScenario_0",
                 "scores": {
-                    "score_composed": 5.2453117759711985,
-                    "score_penalty": 0.2136952101689435,
-                    "score_route": 24.545762030998972
+                    "score_composed": 0.8608835872615954,
+                    "score_penalty": 0.10178312229053905,
+                    "score_route": 8.458019049604419
                 },
                 "status": "Failed"
             }
@@ -95,15 +96,15 @@
         "carla_speedometer"
     ],
     "values": [
-        "5.245",
-        "24.546",
-        "0.214",
+        "0.861",
+        "8.458",
+        "0.102",
         "0.000",
-        "0.084",
-        "0.042",
+        "0.365",
+        "0.122",
         "0.000",
         "0.000",
-        "0.042",
+        "0.122",
         "0.000",
         "0.000",
         "0.000"

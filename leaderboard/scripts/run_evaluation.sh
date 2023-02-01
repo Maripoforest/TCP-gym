@@ -26,8 +26,9 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 export SAVE_PATH=/home/eidos/Warehouse/Teledriving/TCP_eval_result/results_TCP/
 
 # VAE_TCP
-export PATH_VAE_MODEL=/home/eidos/Warehouse/Teledriving/model/SVAE/svae_1024_10ep/SVAEtcp_soft_intro_betas_1.0_1024.0_1.0_model_epoch_9_iter_61440.pth
-
+export PATH_VAE_MODEL=/home/eidos/Warehouse/Teledriving/model/SVAE/vae_tcp_perception_25ep/tcp_soft_intro_betas_1_None_1_model_epoch_15_iter_92160.pth
+export TCP_PERCEPTION=True
+export TCP_MEASUREMENT=False
 # Gym
 #export FIFO_PATH=/home/eidos/Workspace/GitKraken_ws/meta_driving/fifo_space
 
