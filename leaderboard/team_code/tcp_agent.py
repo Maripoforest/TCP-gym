@@ -36,7 +36,8 @@ top_path_vae_tcp = dic_path['rootPath_VAE_TCP']
 if not top_path_vae_tcp in sys.path:
     sys.path.append(top_path_vae_tcp)
 from tools.basic_tools import info_show
-from models.svae.svae_model import SoftIntroVAE as VAEManager
+from models.svae.svae_model import SoftIntroVAE
+from models.jpeg.jpeg_model import JPEG
 from tools.dataset_tcp import NormalizeManager
 # from pythae_ex.models import AutoModel_Ex
 
@@ -44,7 +45,7 @@ PATH_VAE_MODEL = os.environ.get('PATH_VAE_MODEL', None)
 SAVE_PATH = os.environ.get('SAVE_PATH', None)
 TCP_PERCEPTION = os.environ.get('TCP_PERCEPTION', None)
 TCP_MEASUREMENT = os.environ.get('TCP_MEASUREMENT', None)
-
+MODEL_TYPE = os.environ.get('MODEL_TYPE', None)
 
 def get_entry_point():
     return 'TCPAgent'
@@ -102,21 +103,30 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
             (self.save_path / 'bev').mkdir()
         
         # <====================================================================
-        if PATH_VAE_MODEL is not None:
+        if MODEL_TYPE is not None:
+            if MODEL_TYPE == 'JPEG':
+                self.vae_manager = JPEG()
+            # elif MODEL_TYPE == 'BPG':
+            #     self.vae_manager = BPG()
+            # else:
+            #     print('The MODEL_TYPE is invalid.')
+            #     exit()
+            
+        if PATH_VAE_MODEL is not None and MODEL_TYPE is None:
             self.device = torch.device('cuda:0')
             if TCP_PERCEPTION == 'True' and TCP_MEASUREMENT != 'True':
-                self.vae_manager = VAEManager(cdim=3, zdim=1024, 
+                self.vae_manager = SoftIntroVAE(cdim=3, zdim=1024, 
                                               channels=(64, 128, 256, 512, 512, 512), 
                                               image_size=(256,900), conditional=True, 
                                               cond_dim=1000)
             elif TCP_PERCEPTION == 'True' and TCP_MEASUREMENT == 'True':
-                self.vae_manager = VAEManager(cdim=3, zdim=1024, 
+                self.vae_manager = SoftIntroVAE(cdim=3, zdim=1024, 
                                               channels=(64, 128, 256, 512, 512, 512), 
                                               image_size=(256,900), conditional=True, 
                                               cond_dim=1128)
             else:
                 print(TCP_PERCEPTION, TCP_MEASUREMENT)
-                self.vae_manager = VAEManager(cdim=3, zdim=1024, 
+                self.vae_manager = SoftIntroVAE(cdim=3, zdim=1024, 
                                               channels=(64, 128, 256, 512, 512, 512), 
                                               image_size=(256,900))
                 
@@ -261,8 +271,10 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         state = torch.cat([speed, target_point, cmd_one_hot], 1)
         
         # <=========================
-        if PATH_VAE_MODEL is not None:
+        if PATH_VAE_MODEL is not None and MODEL_TYPE is None:
             rgb, tick_data = self.__2nd_process(tick_data, state, rgb)
+        elif MODEL_TYPE is not None:
+            rgb, tick_data = self.__simple_process(tick_data, quality=0)
         # =========================>
         pred= self.net(rgb, state, target_point)
 
@@ -362,4 +374,15 @@ class TCPAgent(autonomous_agent.AutonomousAgent):
         rgb_recon = self.norm_manager.realBatch_2_tcpBatch(rgb_recon)
         
         return rgb_recon, tick_data
+    
+    def __simple_process(self, tick_data, quality=0):
+        rgb = tick_data['rgb']
+        rgb_recon = self.vae_manager.forward(rgb, quality)[-1]
+        tick_data['rgb'] = rgb_recon
+        rgb_recon = self._im_transform(tick_data['rgb']).unsqueeze(0).to('cuda', dtype=torch.float32)
+        
+        return rgb_recon, tick_data
+        
+        
+        
     

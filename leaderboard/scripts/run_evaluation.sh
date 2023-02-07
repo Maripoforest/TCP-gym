@@ -18,7 +18,7 @@ export RESUME=False
 
 
 # TCP evaluation
-export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid_1_route.xml
+export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid_1_route_town05.xml
 export TEAM_AGENT=team_code/tcp_agent.py
 export TEAM_CONFIG=/home/eidos/Warehouse/Teledriving/TCP_agent/epoch=59-last.ckpt
 export CHECKPOINT_ENDPOINT=results_TCP.json
@@ -26,9 +26,11 @@ export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 export SAVE_PATH=/home/eidos/Warehouse/Teledriving/TCP_eval_result/results_TCP/
 
 # VAE_TCP
-export PATH_VAE_MODEL=/home/eidos/Warehouse/Teledriving/model/SVAE/vae_tcp_perception_25ep/tcp_soft_intro_betas_1_None_1_model_epoch_15_iter_92160.pth
+export PATH_VAE_MODEL=/home/eidos/Warehouse/Teledriving/model/SVAE/vae_tcp_action_20ep/tcp_carla_soft_intro_betas_1_None_1_model_epoch_19_iter_236920.pth
 export TCP_PERCEPTION=True
-export TCP_MEASUREMENT=False
+export TCP_MEASUREMENT=True
+# VAE	JPEG	PNG
+export MODEL_TYPE=JPEG
 # Gym
 #export FIFO_PATH=/home/eidos/Workspace/GitKraken_ws/meta_driving/fifo_space
 
