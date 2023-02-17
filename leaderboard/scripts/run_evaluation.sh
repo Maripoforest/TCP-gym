@@ -1,5 +1,5 @@
 #!/bin/bash
-export CARLA_ROOT=/home/eidos/Workspace/CARLA/world_on_rails/CARLA_0.9.10.1
+export CARLA_ROOT=/home/xiangmin/carla
 export CARLA_SERVER=${CARLA_ROOT}/CarlaUE4.sh
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI
 export PYTHONPATH=$PYTHONPATH:${CARLA_ROOT}/PythonAPI/carla
@@ -20,15 +20,15 @@ export RESUME=False
 # TCP evaluation
 export ROUTES=leaderboard/data/evaluation_routes/routes_lav_valid_1_route.xml
 export TEAM_AGENT=team_code/tcp_agent.py
-export TEAM_CONFIG=/home/eidos/Workspace/Playground/0_storage/TCP_agent/epoch=59-last.ckpt
+export TEAM_CONFIG=/home/xiangmin/verification/saved_vae_models/new.ckpt
 export CHECKPOINT_ENDPOINT=results_TCP.json
 export SCENARIOS=leaderboard/data/scenarios/all_towns_traffic_scenarios.json
 #export SAVE_PATH=data/results_TCP/
 
 # VAE_TCP
-export PATH_VAE_MODEL=/home/eidos/Workspace/Playground/0_storage/TCP_VAE_model/VAE_TCP/VAE_TCP_training_2022-11-11_16-19-03/final_model
+export PATH_VAE_MODEL=/home/xiangmin/verification/saved_vae_models/SVAEtcp_soft_intro_betas_1.0_1024.0_1.0_model_epoch_11_iter_147444.pth
 # Gym
-export FIFO_PATH=/home/eidos/Workspace/GitKraken_ws/meta_driving/fifo_space
+export FIFO_PATH=/home/xiangmin/verification/pipe
 
 python3 ${LEADERBOARD_ROOT}/leaderboard/leaderboard_evaluator.py \
 --scenarios=${SCENARIOS}  \
